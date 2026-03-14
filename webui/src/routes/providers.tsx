@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,7 +33,7 @@ import {
 } from "@/lib/api";
 import type { Provider, ProviderTemplate, ProviderModel } from "@/lib/api";
 import { toast } from "sonner";
-import { ExternalLink, Pencil, Trash2, Boxes } from "lucide-react";
+import { ExternalLink, Pencil, Trash2, Boxes, List } from "lucide-react";
 import { ProviderFormDialog } from "@/routes/providers/provider-form-dialog";
 import { ProviderModelsDialog } from "@/routes/providers/provider-models-dialog";
 import { useProviderForm } from "@/routes/providers/use-provider-form";
@@ -40,6 +41,7 @@ import { getConfigBaseUrl } from "@/routes/providers/provider-form-utils";
 
 export default function ProvidersPage() {
   const { t } = useTranslation(['providers', 'common']);
+  const navigate = useNavigate();
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerTemplates, setProviderTemplates] = useState<ProviderTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,7 +226,6 @@ export default function ProvidersPage() {
                       <TableHead>{t('table.name')}</TableHead>
                       <TableHead>{t('table.type')}</TableHead>
                       <TableHead>{t('table.config')}</TableHead>
-                      <TableHead>{t('table.console')}</TableHead>
                       <TableHead>{t('table.actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -232,29 +233,24 @@ export default function ProvidersPage() {
                     {providers.map((provider) => (
                       <TableRow key={provider.ID}>
                         <TableCell className="font-mono text-xs text-muted-foreground">{provider.ID}</TableCell>
-                        <TableCell className="font-medium">{provider.Name}</TableCell>
+                        <TableCell className="font-medium">
+                          {provider.Console ? (
+                            <a href={provider.Console} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                              {provider.Name}
+                            </a>
+                          ) : (
+                            provider.Name
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm">{provider.Type}</TableCell>
                         <TableCell className="text-xs text-muted-foreground font-mono">
                           {getConfigBaseUrl(provider.Config)}
                         </TableCell>
                         <TableCell>
-                          {provider.Console ? (
-                            <Button
-                              title={provider.Console}
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => window.open(provider.Console, '_blank')}
-                            >
-                              <ExternalLink className="h-2 w-2" />
-                            </Button>
-                          ) : (
-                            <Button variant="ghost" size="icon" disabled>
-                              <ExternalLink className="h-2 w-2 opacity-50" />
-                            </Button>
-                          )}
-                        </TableCell>
-                        <TableCell>
                           <div className="flex flex-wrap gap-2">
+                            <Button variant="secondary" size="icon" onClick={() => navigate(`/provider-models?providerId=${provider.ID}`)}>
+                              <List className="h-4 w-4" />
+                            </Button>
                             <Button variant="outline" size="icon" onClick={() => openEditDialog(provider)}>
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -316,6 +312,9 @@ export default function ProvidersPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1.5">
+                      <Button variant="secondary" size="icon" className="h-7 w-7" onClick={() => navigate(`/provider-models?providerId=${provider.ID}`)}>
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
                       <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => openEditDialog(provider)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>

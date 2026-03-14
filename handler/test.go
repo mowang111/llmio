@@ -151,6 +151,94 @@ func ProviderTestHandler(c *gin.Context) {
 	common.SuccessWithMessage(c, string(content), nil)
 }
 
+func ProviderModelTestHandler(c *gin.Context) {
+	id := c.Param("id")
+	model := c.Query("model")
+	if id == "" || model == "" {
+		common.BadRequest(c, "Invalid parameters")
+		return
+	}
+	ctx := c.Request.Context()
+
+	provider, err := gorm.G[models.Provider](models.DB).Where("id = ?", id).First(ctx)
+	if err != nil {
+		common.NotFound(c, "Provider not found")
+		return
+	}
+
+	providerInstance, err := providers.New(provider.Type, provider.Config, provider.Proxy)
+	if err != nil {
+		common.BadRequest(c, "Failed to create provider: "+err.Error())
+		return
+	}
+
+	client := providers.GetClient(time.Second*30, provider.Proxy)
+	var testBody []byte
+	switch provider.Type {
+	case consts.StyleOpenAI:
+		testBody = []byte(testOpenAI)
+	case consts.StyleAnthropic:
+		testBody = []byte(testAnthropic)
+	case consts.StyleOpenAIRes:
+		testBody = []byte(testOpenAIRes)
+	case consts.StyleGemini:
+		testBody = []byte(testGemini)
+	default:
+		common.BadRequest(c, "Invalid provider type")
+		return
+	}
+
+	header := service.BuildHeaders(c.Request.Header, false, nil, false)
+	req, err := providerInstance.BuildReq(ctx, header, model, testBody)
+	if err != nil {
+		common.ErrorWithHttpStatus(c, http.StatusOK, 502, "Failed to connect: "+err.Error())
+		return
+	}
+
+	start := time.Now()
+	res, err := client.Do(req)
+	proxyTime := time.Since(start).Milliseconds()
+
+	// 记录日志
+	chatLog := &models.ChatLog{
+		Name:          "test",
+		ProviderModel: model,
+		ProviderName:  provider.Name,
+		Style:         provider.Type,
+		ProxyTime:     time.Duration(proxyTime) * time.Millisecond,
+	}
+
+	if err != nil {
+		chatLog.Status = "failed"
+		chatLog.Error = err.Error()
+		gorm.G[models.ChatLog](models.DB).Create(ctx, chatLog)
+		common.ErrorWithHttpStatus(c, http.StatusOK, 502, "Failed to connect: "+err.Error())
+		return
+	}
+	defer res.Body.Close()
+
+	content, err := io.ReadAll(res.Body)
+	if err != nil {
+		chatLog.Status = "failed"
+		chatLog.Error = err.Error()
+		gorm.G[models.ChatLog](models.DB).Create(ctx, chatLog)
+		common.ErrorWithHttpStatus(c, http.StatusOK, res.StatusCode, "Failed to read: "+err.Error())
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		chatLog.Status = "failed"
+		chatLog.Error = fmt.Sprintf("code: %d", res.StatusCode)
+		gorm.G[models.ChatLog](models.DB).Create(ctx, chatLog)
+		common.ErrorWithHttpStatus(c, http.StatusOK, res.StatusCode, fmt.Sprintf("code: %d body: %s", res.StatusCode, string(content)))
+		return
+	}
+
+	chatLog.Status = "success"
+	gorm.G[models.ChatLog](models.DB).Create(ctx, chatLog)
+	common.SuccessWithMessage(c, string(content), nil)
+}
+
 func TestReactHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")

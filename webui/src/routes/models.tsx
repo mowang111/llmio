@@ -132,10 +132,13 @@ export default function ModelsPage() {
         strategy: strategyFilter === "all" ? undefined : strategyFilter,
         io_log: ioLogFilter === "all" ? undefined : (ioLogFilter as "true" | "false"),
       });
-      setModels(response.data);
-      setTotal(response.total);
-      setPages(response.pages);
-      const totalPages = response.pages || 0;
+      console.log('All models:', response.data.map(m => ({ name: m.Name, isGroup: m.IsGroup })));
+      const filteredData = response.data.filter(m => !m.IsGroup);
+      console.log('Filtered models:', filteredData.map(m => ({ name: m.Name, isGroup: m.IsGroup })));
+      setModels(filteredData);
+      setTotal(filteredData.length);
+      setPages(Math.ceil(filteredData.length / pageSize));
+      const totalPages = Math.ceil(filteredData.length / pageSize) || 0;
       if (totalPages > 0 && page > totalPages) {
         setPage(totalPages);
       } else if (totalPages === 0 && page !== 1) {
@@ -164,10 +167,12 @@ export default function ModelsPage() {
         io_log: values.io_log,
         strategy: values.strategy,
         breaker: values.breaker,
+        is_group: false,
+        sub_models: [],
       });
       setOpen(false);
       toast.success(`模型: ${values.name} 创建成功`);
-      form.reset({ name: "", remark: "", max_retry: 10, time_out: 60, io_log: false, strategy: "lottery", breaker: false });
+      form.reset();
       await fetchModels();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -186,11 +191,13 @@ export default function ModelsPage() {
         io_log: values.io_log,
         strategy: values.strategy,
         breaker: values.breaker,
+        is_group: false,
+        sub_models: [],
       });
       setOpen(false);
       toast.success(`模型: ${values.name} 更新成功`);
       setEditingModel(null);
-      form.reset({ name: "", remark: "", max_retry: 10, time_out: 60, io_log: false, strategy: "lottery", breaker: false });
+      form.reset();
       await fetchModels();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -230,7 +237,7 @@ export default function ModelsPage() {
 
   const openCreateDialog = () => {
     setEditingModel(null);
-    form.reset({ name: "", remark: "", max_retry: 10, time_out: 60, io_log: false, strategy: "lottery", breaker: false });
+    form.reset();
     setOpen(true);
   };
 

@@ -95,6 +95,8 @@ const modelEditSchema = z.object({
   io_log: z.boolean(),
   strategy: z.enum(["lottery", "rotor"]),
   breaker: z.boolean(),
+  is_group: z.boolean(),
+  sub_models: z.array(z.number()).optional(),
 });
 
 export default function ModelProvidersPage() {
@@ -142,6 +144,8 @@ export default function ModelProvidersPage() {
       io_log: false,
       strategy: "lottery",
       breaker: false,
+      is_group: false,
+      sub_models: [],
     },
   });
 
@@ -207,7 +211,7 @@ export default function ModelProvidersPage() {
   const fetchModels = async () => {
     try {
       const data = await getModelOptions();
-      setModels(data);
+      setModels(data.filter(m => !m.IsGroup));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       toast.error(t('toast.fetch_models_failed', { message }));
@@ -548,6 +552,8 @@ export default function ModelProvidersPage() {
       io_log: !!model.IOLog,
       strategy: model.Strategy === "rotor" ? "rotor" : "lottery",
       breaker: model.Breaker ?? false,
+      is_group: model.IsGroup ?? false,
+      sub_models: model.SubModels || [],
     });
     setModelEditOpen(true);
   };
@@ -562,6 +568,8 @@ export default function ModelProvidersPage() {
       io_log: false,
       strategy: "lottery",
       breaker: false,
+      is_group: false,
+      sub_models: [],
     });
     setModelEditOpen(true);
   };
@@ -577,6 +585,8 @@ export default function ModelProvidersPage() {
       io_log: false,
       strategy: "lottery",
       breaker: false,
+      is_group: false,
+      sub_models: [],
     });
     setModelEditSaving(false);
   };
@@ -593,6 +603,8 @@ export default function ModelProvidersPage() {
           strategy: values.strategy,
           io_log: values.io_log,
           breaker: values.breaker,
+          is_group: values.is_group,
+          sub_models: values.sub_models || [],
         });
 
         setModels((prev) =>
@@ -621,6 +633,8 @@ export default function ModelProvidersPage() {
           strategy: values.strategy,
           io_log: values.io_log,
           breaker: values.breaker,
+          is_group: false,
+          sub_models: [],
         });
 
         setModels((prev) => sortCardModels([...prev, created]));
@@ -1143,7 +1157,15 @@ export default function ModelProvidersPage() {
                             {association.ProviderModel}
                           </TableCell>
                           <TableCell>{provider?.Type ?? t('common:unknown')}</TableCell>
-                          <TableCell>{provider?.Name ?? t('common:unknown')}</TableCell>
+                          <TableCell>
+                            {provider?.Console ? (
+                              <a href={provider.Console} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                                {provider.Name}
+                              </a>
+                            ) : (
+                              provider?.Name ?? t('common:unknown')
+                            )}
+                          </TableCell>
                           <TableCell>
                             <span className={association.ToolCall ? "text-green-600" : "text-red-600"}>
                               {association.ToolCall ? '✓' : '✗'}
@@ -1484,6 +1506,55 @@ export default function ModelProvidersPage() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={modelEditForm.control}
+                name="is_group"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                    <div className="space-y-0.5">
+                      <FormLabel className="text-base">模型组</FormLabel>
+                      <p className="text-sm text-muted-foreground">启用后可配置子模型</p>
+                    </div>
+                    <FormControl>
+                      <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              {modelEditForm.watch("is_group") && (
+                <FormField
+                  control={modelEditForm.control}
+                  name="sub_models"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>子模型</FormLabel>
+                      <div className="space-y-2">
+                        {models.filter(m => m.ID !== editingModel?.ID).map((model) => (
+                          <div key={model.ID} className="flex items-center space-x-2">
+                            <Checkbox
+                              checked={field.value?.includes(model.ID) || false}
+                              onCheckedChange={(checked) => {
+                                const current = field.value || [];
+                                if (checked) {
+                                  field.onChange([...current, model.ID]);
+                                } else {
+                                  field.onChange(current.filter(id => id !== model.ID));
+                                }
+                              }}
+                            />
+                            <Label className="text-sm font-normal cursor-pointer">
+                              {model.Name} (ID: {model.ID})
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={modelEditForm.control}

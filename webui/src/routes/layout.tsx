@@ -13,7 +13,8 @@ import {
   FaChevronLeft,
   FaChevronRight,
   FaCog,
-  FaKey
+  FaKey,
+  FaLayerGroup
 } from "react-icons/fa";
 import { useTheme } from "@/components/theme-provider";
 import { getVersion, checkLatestRelease, type GitHubRelease } from "@/lib/api";
@@ -111,6 +112,7 @@ export default function Layout() {
     { to: "/", label: t('nav.home'), icon: <FaHome /> },
     { to: "/providers", label: t('nav.providers'), icon: <FaCloud /> },
     { to: "/models", label: t('nav.models'), icon: <FaRobot /> },
+    { to: "/model-groups", label: "模型组", icon: <FaLayerGroup /> },
     { to: "/logs", label: t('nav.logs'), icon: <FaFileAlt /> },
     { to: "/auth-keys", label: t('nav.auth_keys'), icon: <FaKey /> },
     { to: "/config", label: t('nav.config'), icon: <FaCog /> },

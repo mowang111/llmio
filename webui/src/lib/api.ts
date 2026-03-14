@@ -22,6 +22,9 @@ export interface Model {
   Strategy: string;
   Breaker?: boolean | null;
   DisplayOrder?: number;
+  SubModels?: number[];
+  SubModelsWeight?: Record<number, number>;
+  IsGroup?: boolean | null;
 }
 
 export interface ModelWithProvider {
@@ -207,6 +210,8 @@ export async function createModel(model: {
   io_log: boolean;
   strategy: string;
   breaker: boolean;
+  is_group: boolean;
+  sub_models: number[];
 }): Promise<Model> {
   return apiRequest<Model>('/models', {
     method: 'POST',
@@ -222,6 +227,9 @@ export async function updateModel(id: number, model: {
   io_log?: boolean;
   strategy?: string;
   breaker?: boolean;
+  is_group?: boolean;
+  sub_models?: number[];
+  sub_models_weight?: Record<string, number>;
 }): Promise<Model> {
   return apiRequest<Model>(`/models/${id}`, {
     method: 'PUT',
@@ -318,6 +326,29 @@ export async function getModelProviderStatus(providerId: number, modelName: stri
     provider_model: providerModel
   });
   return apiRequest<boolean[]>(`/model-providers/status?${params.toString()}`);
+}
+
+export async function getSubModelStatus(modelName: string, subModelName: string): Promise<boolean[]> {
+  const params = new URLSearchParams({
+    model_name: modelName,
+    sub_model_name: subModelName
+  });
+  return apiRequest<boolean[]>(`/sub-models/status?${params.toString()}`);
+}
+
+export async function testProviderModel(providerId: number, model: string): Promise<any> {
+  const token = localStorage.getItem("authToken");
+  const params = new URLSearchParams({ model });
+  const response = await fetch(`${API_BASE}/test/provider-model/${providerId}?${params.toString()}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+  const data = await response.json();
+  if (data.code !== 200) {
+    throw new Error(data.message);
+  }
+  return data;
 }
 
 export async function createModelProvider(association: {

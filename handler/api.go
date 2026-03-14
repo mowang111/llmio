@@ -29,13 +29,16 @@ type ProviderRequest struct {
 
 // ModelRequest represents the request body for creating/updating a model
 type ModelRequest struct {
-	Name     string `json:"name"`
-	Remark   string `json:"remark"`
-	MaxRetry int    `json:"max_retry"`
-	TimeOut  int    `json:"time_out"`
-	IOLog    bool   `json:"io_log"`
-	Strategy string `json:"strategy"`
-	Breaker  bool   `json:"breaker"`
+	Name            string       `json:"name"`
+	Remark          string       `json:"remark"`
+	MaxRetry        int          `json:"max_retry"`
+	TimeOut         int          `json:"time_out"`
+	IOLog           bool         `json:"io_log"`
+	Strategy        string       `json:"strategy"`
+	Breaker         bool         `json:"breaker"`
+	IsGroup         bool         `json:"is_group"`
+	SubModels       []uint       `json:"sub_models"`
+	SubModelsWeight map[uint]int `json:"sub_models_weight"`
 }
 
 type ModelOrderRequest struct {
@@ -325,14 +328,17 @@ func CreateModel(c *gin.Context) {
 	}
 
 	model := models.Model{
-		Name:         req.Name,
-		Remark:       req.Remark,
-		MaxRetry:     req.MaxRetry,
-		TimeOut:      req.TimeOut,
-		IOLog:        &req.IOLog,
-		Strategy:     strategy,
-		Breaker:      &req.Breaker,
-		DisplayOrder: maxDisplayOrder + 1,
+		Name:            req.Name,
+		Remark:          req.Remark,
+		MaxRetry:        req.MaxRetry,
+		TimeOut:         req.TimeOut,
+		IOLog:           &req.IOLog,
+		Strategy:        strategy,
+		Breaker:         &req.Breaker,
+		DisplayOrder:    maxDisplayOrder + 1,
+		IsGroup:         &req.IsGroup,
+		SubModels:       req.SubModels,
+		SubModelsWeight: req.SubModelsWeight,
 	}
 
 	if err := gorm.G[models.Model](models.DB).Create(c.Request.Context(), &model); err != nil {
@@ -376,13 +382,16 @@ func UpdateModel(c *gin.Context) {
 
 	// Update fields
 	updates := models.Model{
-		Name:     req.Name,
-		Remark:   req.Remark,
-		MaxRetry: req.MaxRetry,
-		TimeOut:  req.TimeOut,
-		IOLog:    &req.IOLog,
-		Strategy: strategy,
-		Breaker:  &req.Breaker,
+		Name:            req.Name,
+		Remark:          req.Remark,
+		MaxRetry:        req.MaxRetry,
+		TimeOut:         req.TimeOut,
+		IOLog:           &req.IOLog,
+		Strategy:        strategy,
+		Breaker:         &req.Breaker,
+		IsGroup:         &req.IsGroup,
+		SubModels:       req.SubModels,
+		SubModelsWeight: req.SubModelsWeight,
 	}
 
 	if _, err := gorm.G[models.Model](models.DB).Where("id = ?", id).Updates(c.Request.Context(), updates); err != nil {
@@ -568,11 +577,41 @@ func GetModelProviderStatus(c *gin.Context) {
 		return
 	}
 
-	// 获取最近10次请求状态
+	// 获取最近10次请求状态（包括测试记录）
 	logs, err := gorm.G[models.ChatLog](models.DB).
 		Where("provider_name = ?", provider.Name).
 		Where("provider_model = ?", providerModel).
+		Where("(name = ? OR name = ?)", modelName, "test").
+		Where("status != ?", consts.StatusRunning).
+		Limit(10).
+		Order("created_at DESC").
+		Find(c.Request.Context())
+	if err != nil {
+		common.InternalServerError(c, "Failed to retrieve chat log: "+err.Error())
+		return
+	}
+
+	status := make([]bool, 0)
+	for _, log := range logs {
+		status = append(status, log.Status == consts.StatusSuccess)
+	}
+	slices.Reverse(status)
+	common.Success(c, status)
+}
+
+// GetSubModelStatus 获取子模型状态信息
+func GetSubModelStatus(c *gin.Context) {
+	modelName := c.Query("model_name")
+	subModelName := c.Query("sub_model_name")
+
+	if modelName == "" || subModelName == "" {
+		common.BadRequest(c, "model_name and sub_model_name query parameters are required")
+		return
+	}
+
+	logs, err := gorm.G[models.ChatLog](models.DB).
 		Where("name = ?", modelName).
+		Where("provider_model = ?", subModelName).
 		Where("status != ?", consts.StatusRunning).
 		Limit(10).
 		Order("created_at DESC").

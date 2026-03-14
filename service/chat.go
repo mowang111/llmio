@@ -277,7 +277,13 @@ func ProvidersWithMetaBymodelsName(ctx context.Context, style string, before Bef
 		return nil, err
 	}
 
-	modelWithProviderChain := gorm.G[models.ModelWithProvider](models.DB).Where("model_id = ?", model.ID).Where("status = ?", true)
+	// 展开子模型
+	modelIDs := []uint{model.ID}
+	if model.IsGroup != nil && *model.IsGroup && len(model.SubModels) > 0 {
+		modelIDs = model.SubModels
+	}
+
+	modelWithProviderChain := gorm.G[models.ModelWithProvider](models.DB).Where("model_id IN ?", modelIDs).Where("status = ?", true)
 
 	if before.toolCall {
 		modelWithProviderChain = modelWithProviderChain.Where("tool_call = ?", true)
@@ -317,7 +323,13 @@ func ProvidersWithMetaBymodelsName(ctx context.Context, style string, before Bef
 		if _, ok := providerMap[mp.ProviderID]; !ok {
 			continue
 		}
-		weightItems[mp.ID] = mp.Weight
+		weight := mp.Weight
+		if model.IsGroup != nil && *model.IsGroup && model.SubModelsWeight != nil {
+			if subWeight, ok := model.SubModelsWeight[mp.ModelID]; ok {
+				weight = weight * subWeight
+			}
+		}
+		weightItems[mp.ID] = weight
 	}
 
 	if model.IOLog == nil {

@@ -11,27 +11,40 @@ import (
 	"github.com/atopos31/llmio/providers"
 	"github.com/atopos31/llmio/service"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func OpenAIModelsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
-	models, err := service.ModelsByTypes(ctx, consts.StyleOpenAI, consts.StyleOpenAIRes)
+	modelList, err := service.ModelsByTypes(ctx, consts.StyleOpenAI, consts.StyleOpenAIRes)
 	if err != nil {
 		common.InternalServerError(c, err.Error())
 		return
 	}
-	models, err = filterByAuthKey(ctx, models)
+
+	groups, err := gorm.G[models.Model](models.DB).Where("is_group = ?", true).Find(ctx)
+	if err != nil {
+		common.InternalServerError(c, err.Error())
+		return
+	}
+	modelList = append(modelList, groups...)
+
+	modelList, err = filterByAuthKey(ctx, modelList)
 	if err != nil {
 		common.InternalServerError(c, err.Error())
 		return
 	}
 	resModels := make([]providers.Model, 0)
-	for _, model := range models {
+	for _, model := range modelList {
+		ownedBy := "llmio"
+		if model.IsGroup != nil && *model.IsGroup {
+			ownedBy = "llmio-group"
+		}
 		resModels = append(resModels, providers.Model{
 			ID:      model.Name,
 			Object:  "model",
 			Created: model.CreatedAt.Unix(),
-			OwnedBy: "llmio",
+			OwnedBy: ownedBy,
 		})
 	}
 	common.SuccessRaw(c, providers.ModelList{

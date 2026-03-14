@@ -110,6 +110,7 @@ func main() {
 		// Model-provider association management
 		api.GET("/model-providers", handler.GetModelProviders)
 		api.GET("/model-providers/status", handler.GetModelProviderStatus)
+		api.GET("/sub-models/status", handler.GetSubModelStatus)
 		api.POST("/model-providers", handler.CreateModelProvider)
 		api.PUT("/model-providers/:id", handler.UpdateModelProvider)
 		api.PATCH("/model-providers/:id/status", handler.UpdateModelProviderStatus)
@@ -136,6 +137,7 @@ func main() {
 
 		// Provider connectivity test
 		api.GET("/test/:id", handler.ProviderTestHandler)
+		api.GET("/test/provider-model/:id", handler.ProviderModelTestHandler)
 		api.GET("/test/react/:id", handler.TestReactHandler)
 		api.GET("/test/count_tokens", handler.TestCountTokens)
 	}
