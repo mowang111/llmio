@@ -27,36 +27,46 @@ type Provider interface {
 }
 
 func New(Type, providerConfig, proxy string) (Provider, error) {
-	switch Type {
+	return NewWithConfig(Type, providerConfig, proxy, "default")
+}
+
+func NewWithConfig(providerType, providerConfig, proxy, configName string) (Provider, error) {
+	// 获取指定配置
+	cfgType, cfg, err := GetConfig(providerType, providerConfig, configName)
+	if err != nil {
+		return nil, err
+	}
+
+	switch cfgType {
 	case consts.StyleOpenAI:
 		var openai OpenAI
-		if err := json.Unmarshal([]byte(providerConfig), &openai); err != nil {
+		if err := json.Unmarshal(cfg, &openai); err != nil {
 			return nil, errors.New("invalid openai config")
 		}
 		openai.Proxy = proxy
 		return &openai, nil
 	case consts.StyleOpenAIRes:
 		var openaiRes OpenAIRes
-		if err := json.Unmarshal([]byte(providerConfig), &openaiRes); err != nil {
+		if err := json.Unmarshal(cfg, &openaiRes); err != nil {
 			return nil, errors.New("invalid openai-res config")
 		}
 		openaiRes.Proxy = proxy
 		return &openaiRes, nil
 	case consts.StyleAnthropic:
 		var anthropic Anthropic
-		if err := json.Unmarshal([]byte(providerConfig), &anthropic); err != nil {
+		if err := json.Unmarshal(cfg, &anthropic); err != nil {
 			return nil, errors.New("invalid anthropic config")
 		}
 		anthropic.Proxy = proxy
 		return &anthropic, nil
 	case consts.StyleGemini:
 		var gemini Gemini
-		if err := json.Unmarshal([]byte(providerConfig), &gemini); err != nil {
+		if err := json.Unmarshal(cfg, &gemini); err != nil {
 			return nil, errors.New("invalid gemini config")
 		}
 		gemini.Proxy = proxy
 		return &gemini, nil
 	default:
-		return nil, errors.New("unknown provider")
+		return nil, errors.New("unknown provider type: " + cfgType)
 	}
 }

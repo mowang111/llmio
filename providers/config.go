@@ -5,13 +5,20 @@ import (
 	"fmt"
 )
 
+// ConfigItem 单个配置项
+type ConfigItem struct {
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
+}
+
 // MultiConfig 支持多个配置对
 type MultiConfig struct {
-	Configs map[string]json.RawMessage `json:"configs"`
+	Configs map[string]ConfigItem `json:"configs"`
 }
 
 // GetConfig 获取指定名称的配置，支持向后兼容
-func GetConfig(configJSON string, configName string) (json.RawMessage, error) {
+// 返回配置的类型和配置内容
+func GetConfig(providerType, configJSON, configName string) (string, json.RawMessage, error) {
 	if configName == "" {
 		configName = "default"
 	}
@@ -20,17 +27,17 @@ func GetConfig(configJSON string, configName string) (json.RawMessage, error) {
 	var multi MultiConfig
 	if err := json.Unmarshal([]byte(configJSON), &multi); err == nil && multi.Configs != nil {
 		if cfg, ok := multi.Configs[configName]; ok {
-			return cfg, nil
+			return cfg.Type, cfg.Config, nil
 		}
-		return nil, fmt.Errorf("config '%s' not found", configName)
+		return "", nil, fmt.Errorf("config '%s' not found", configName)
 	}
 
 	// 向后兼容：旧格式直接返回（仅支持 default）
 	if configName == "default" {
-		return json.RawMessage(configJSON), nil
+		return providerType, json.RawMessage(configJSON), nil
 	}
 
-	return nil, fmt.Errorf("config '%s' not found in legacy format", configName)
+	return "", nil, fmt.Errorf("config '%s' not found in legacy format", configName)
 }
 
 // GetConfigNames 获取所有配置名称

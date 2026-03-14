@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import Loading from "@/components/loading";
-import { getProviders, getProviderModels, getModelOptions, createModelProvider, getModelProviders, testProviderModel, getModelProviderStatus, deleteModelProvider } from "@/lib/api";
+import { getProviders, getProviderModels, getModelOptions, createModelProvider, getModelProviders, testProviderModel, getModelProviderStatus, deleteModelProvider, getProviderConfigNames } from "@/lib/api";
 import type { Provider, ProviderModel, Model, ModelWithProvider } from "@/lib/api";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Zap } from "lucide-react";
@@ -30,6 +30,8 @@ export default function ProviderModelsPage() {
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [modelStatus, setModelStatus] = useState<Record<string, boolean[]>>({});
+  const [configNames, setConfigNames] = useState<string[]>([]);
+  const [selectedConfigName, setSelectedConfigName] = useState<string>("default");
 
   useEffect(() => {
     if (!providerId) {
@@ -37,7 +39,7 @@ export default function ProviderModelsPage() {
       return;
     }
     fetchData();
-  }, [providerId]);
+  }, [providerId, selectedConfigName]);
 
   const fetchData = async () => {
     try {
@@ -51,6 +53,10 @@ export default function ProviderModelsPage() {
       }
       setProvider(foundProvider);
 
+      // 加载配置名称列表
+      const names = await getProviderConfigNames(Number(providerId));
+      setConfigNames(names);
+
       const models = await getProviderModels(Number(providerId));
       setProviderModels(models);
 
@@ -60,7 +66,10 @@ export default function ProviderModelsPage() {
       const allAssociations: ModelWithProvider[] = [];
       for (const model of myModelsList.filter(m => !m.IsGroup)) {
         const associations = await getModelProviders(model.ID);
-        allAssociations.push(...associations.filter(a => a.ProviderID === Number(providerId)));
+        allAssociations.push(...associations.filter(a =>
+          a.ProviderID === Number(providerId) &&
+          (a.ConfigName || "default") === selectedConfigName
+        ));
       }
       setModelProviders(allAssociations);
 
@@ -113,6 +122,7 @@ export default function ProviderModelsPage() {
         model_id: selectedModelId,
         provider_name: selectedProviderModel,
         provider_id: provider.ID,
+        config_name: selectedConfigName,
         tool_call: true,
         structured_output: true,
         image: true,
@@ -169,6 +179,18 @@ export default function ProviderModelsPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h2 className="text-2xl font-bold">可用模型 - {provider?.Name}</h2>
+        {configNames.length > 1 && (
+          <Select value={selectedConfigName} onValueChange={setSelectedConfigName}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {configNames.map(name => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
       </div>
       <div className="flex-1 min-h-0 border rounded-md bg-background shadow-sm">
         {providerModels.length === 0 ? (

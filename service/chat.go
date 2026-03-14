@@ -85,7 +85,7 @@ func BalanceChat(ctx context.Context, start time.Time, style string, before Befo
 			return nil, fmt.Errorf("provider %d not found", modelWithProvider.ProviderID)
 		}
 
-		chatModel, err := providers.New(provider.Type, provider.Config, provider.Proxy)
+		chatModel, err := providers.NewWithConfig(provider.Type, provider.Config, provider.Proxy, modelWithProvider.ConfigName)
 		if err != nil {
 			return nil, MarkPermanent(err)
 		}

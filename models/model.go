@@ -44,6 +44,7 @@ type ModelWithProvider struct {
 	ModelID          uint
 	ProviderModel    string
 	ProviderID       uint
+	ConfigName       string            `gorm:"default:default"` // 配置名称，默认为 default
 	ToolCall         *bool             // 能否接受带有工具调用的请求
 	StructuredOutput *bool             // 能否接受带有结构化输出的请求
 	Image            *bool             // 能否接受带有图片的请求(视觉)

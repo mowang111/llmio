@@ -32,6 +32,7 @@ export interface ModelWithProvider {
   ModelID: number;
   ProviderModel: string;
   ProviderID: number;
+  ConfigName: string;
   ToolCall: boolean;
   StructuredOutput: boolean;
   Image: boolean;
@@ -355,6 +356,7 @@ export async function createModelProvider(association: {
   model_id: number;
   provider_name: string;
   provider_id: number;
+  config_name?: string;
   tool_call: boolean;
   structured_output: boolean;
   image: boolean;
@@ -372,6 +374,7 @@ export async function updateModelProvider(id: number, association: {
   model_id?: number;
   provider_name?: string;
   provider_id?: number;
+  config_name?: string;
   tool_call?: boolean;
   structured_output?: boolean;
   image?: boolean;
@@ -460,6 +463,10 @@ export interface ProviderModel {
 
 export async function getProviderModels(providerId: number): Promise<ProviderModel[]> {
   return apiRequest<ProviderModel[]>(`/providers/models/${providerId}`);
+}
+
+export async function getProviderConfigNames(providerId: number): Promise<string[]> {
+  return apiRequest<string[]>(`/providers/configs/${providerId}`);
 }
 
 // Config API functions

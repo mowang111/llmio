@@ -50,6 +50,7 @@ type ModelWithProviderRequest struct {
 	ModelID          uint              `json:"model_id"`
 	ProviderModel    string            `json:"provider_name"`
 	ProviderID       uint              `json:"provider_id"`
+	ConfigName       string            `json:"config_name"`
 	ToolCall         bool              `json:"tool_call"`
 	StructuredOutput bool              `json:"structured_output"`
 	Image            bool              `json:"image"`
@@ -105,12 +106,17 @@ func GetProviders(c *gin.Context) {
 
 func GetProviderModels(c *gin.Context) {
 	id := c.Param("id")
+	configName := c.Query("config_name")
+	if configName == "" {
+		configName = "default"
+	}
+
 	provider, err := gorm.G[models.Provider](models.DB).Where("id = ?", id).First(c.Request.Context())
 	if err != nil {
 		common.InternalServerError(c, err.Error())
 		return
 	}
-	chatModel, err := providers.New(provider.Type, provider.Config, provider.Proxy)
+	chatModel, err := providers.NewWithConfig(provider.Type, provider.Config, provider.Proxy, configName)
 	if err != nil {
 		common.InternalServerError(c, "Failed to get models: "+err.Error())
 		return
@@ -121,6 +127,18 @@ func GetProviderModels(c *gin.Context) {
 		return
 	}
 	common.Success(c, models)
+}
+
+// GetProviderConfigNames 获取提供商的配置名称列表
+func GetProviderConfigNames(c *gin.Context) {
+	id := c.Param("id")
+	provider, err := gorm.G[models.Provider](models.DB).Where("id = ?", id).First(c.Request.Context())
+	if err != nil {
+		common.InternalServerError(c, err.Error())
+		return
+	}
+	names := providers.GetConfigNames(provider.Config)
+	common.Success(c, names)
 }
 
 // CreateProvider 创建提供商
@@ -642,10 +660,16 @@ func CreateModelProvider(c *gin.Context) {
 		customerHeaders = map[string]string{}
 	}
 
+	configName := req.ConfigName
+	if configName == "" {
+		configName = "default"
+	}
+
 	modelProvider := models.ModelWithProvider{
 		ModelID:          req.ModelID,
 		ProviderModel:    req.ProviderModel,
 		ProviderID:       req.ProviderID,
+		ConfigName:       configName,
 		ToolCall:         &req.ToolCall,
 		StructuredOutput: &req.StructuredOutput,
 		Image:            &req.Image,
@@ -687,6 +711,11 @@ func UpdateModelProvider(c *gin.Context) {
 		customerHeaders = map[string]string{}
 	}
 
+	configName := req.ConfigName
+	if configName == "" {
+		configName = "default"
+	}
+
 	// Check if model-provider association exists
 	_, err = gorm.G[models.ModelWithProvider](models.DB).Where("id = ?", id).First(c.Request.Context())
 	if err != nil {
@@ -703,6 +732,7 @@ func UpdateModelProvider(c *gin.Context) {
 		ModelID:          req.ModelID,
 		ProviderID:       req.ProviderID,
 		ProviderModel:    req.ProviderModel,
+		ConfigName:       configName,
 		ToolCall:         &req.ToolCall,
 		StructuredOutput: &req.StructuredOutput,
 		Image:            &req.Image,
