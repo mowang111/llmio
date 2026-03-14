@@ -182,12 +182,40 @@ export function ProviderFormDialog({
                       </div>
                     )
                   ) : (
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        className="resize-none whitespace-pre overflow-x-auto"
-                      />
-                    </FormControl>
+                    <>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          className="resize-none whitespace-pre overflow-x-auto font-mono text-xs"
+                          rows={8}
+                        />
+                      </FormControl>
+                      <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                        <p className="font-medium">单配置格式：</p>
+                        <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`{"base_url": "https://api.openai.com/v1", "api_key": "sk-xxx"}`}
+                        </pre>
+                        <p className="font-medium mt-2">多配置格式（支持不同类型）：</p>
+                        <pre className="bg-muted p-2 rounded overflow-x-auto">
+{`{
+  "configs": {
+    "default": {
+      "type": "openai",
+      "config": {"base_url": "https://api.openai.com/v1", "api_key": "sk-xxx"}
+    },
+    "backup": {
+      "type": "openai",
+      "config": {"base_url": "https://backup.com/v1", "api_key": "sk-yyy"}
+    },
+    "gemini": {
+      "type": "gemini",
+      "config": {"base_url": "https://generativelanguage.googleapis.com/v1beta", "api_key": "AIza..."}
+    }
+  }
+}`}
+                        </pre>
+                      </div>
+                    </>
                   )}
                   <FormMessage />
                 </FormItem>
