@@ -61,6 +61,16 @@ export const getTemplateInitialConfig = (template?: ProviderTemplate): string =>
 };
 
 export const getConfigBaseUrl = (config: string): string => {
-  const parsed = parseConfigJson(config);
-  return parsed?.base_url ?? "未设置";
+  try {
+    const parsed = JSON.parse(config);
+    if (parsed.configs) {
+      // 多配置格式，显示配置数量
+      const count = Object.keys(parsed.configs).length;
+      return `${count}个配置`;
+    }
+    // 单配置格式
+    return parsed.base_url ?? "未设置";
+  } catch {
+    return "未设置";
+  }
 };

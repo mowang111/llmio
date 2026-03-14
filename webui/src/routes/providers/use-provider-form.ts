@@ -6,12 +6,17 @@ import { createProvider, updateProvider } from "@/lib/api";
 import type { Provider, ProviderTemplate } from "@/lib/api";
 import { toast } from "sonner";
 import {
-  mergeTemplateWithConfig,
   parseConfigJson,
   stringifyConfigFields,
   type ConfigFieldMap,
   getTemplateInitialConfig,
 } from "./provider-form-utils";
+
+type ConfigItem = {
+  name: string;
+  type: string;
+  fields: Record<string, string>;
+};
 
 export const providerFormSchema = z.object({
   name: z.string().min(1, { message: "提供商名称不能为空" }),
@@ -46,6 +51,7 @@ export const useProviderForm = ({
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
   const [configFields, setConfigFields] = useState<ConfigFieldMap>({});
   const [structuredConfigEnabled, setStructuredConfigEnabled] = useState(false);
+  const [multiConfigs, setMultiConfigs] = useState<ConfigItem[]>([]);
   const configCacheRef = useRef<Record<string, ConfigFieldMap>>({});
 
   const form = useForm<ProviderFormValues>({
@@ -59,6 +65,7 @@ export const useProviderForm = ({
     if (!open) {
       setStructuredConfigEnabled(false);
       setConfigFields({});
+      setMultiConfigs([]);
       configCacheRef.current = {};
       return;
     }
@@ -66,6 +73,7 @@ export const useProviderForm = ({
     if (!selectedProviderType) {
       setStructuredConfigEnabled(false);
       setConfigFields({});
+      setMultiConfigs([]);
       return;
     }
 
@@ -76,6 +84,7 @@ export const useProviderForm = ({
     if (!template) {
       setStructuredConfigEnabled(false);
       setConfigFields({});
+      setMultiConfigs([]);
       return;
     }
 
@@ -83,26 +92,34 @@ export const useProviderForm = ({
     if (!templateFields) {
       setStructuredConfigEnabled(false);
       setConfigFields({});
+      setMultiConfigs([]);
       return;
     }
 
-    let nextFields = configCacheRef.current[selectedProviderType];
-
-    if (!nextFields && editingProvider && editingProvider.Type === selectedProviderType) {
-      const editingConfig = parseConfigJson(editingProvider.Config);
-      if (editingConfig) {
-        nextFields = mergeTemplateWithConfig(templateFields, editingConfig, true);
+    // 初始化多配置
+    if (editingProvider && editingProvider.Type === selectedProviderType) {
+      try {
+        const config = JSON.parse(editingProvider.Config);
+        if (config.configs) {
+          // 多配置格式
+          const configs: ConfigItem[] = Object.entries(config.configs).map(([name, item]: [string, any]) => ({
+            name,
+            type: item.type,
+            fields: item.config
+          }));
+          setMultiConfigs(configs);
+        } else {
+          // 单配置格式
+          setMultiConfigs([{ name: 'default', type: selectedProviderType, fields: config }]);
+        }
+      } catch {
+        setMultiConfigs([{ name: 'default', type: selectedProviderType, fields: templateFields }]);
       }
+    } else {
+      setMultiConfigs([{ name: 'default', type: selectedProviderType, fields: templateFields }]);
     }
 
-    if (!nextFields) {
-      nextFields = templateFields;
-    }
-
-    configCacheRef.current[selectedProviderType] = nextFields;
-    setConfigFields(nextFields);
     setStructuredConfigEnabled(true);
-    form.setValue("config", stringifyConfigFields(nextFields));
   }, [open, selectedProviderType, providerTemplates, editingProvider, form]);
 
   const handleConfigFieldChange = (key: string, value: string) => {
@@ -117,6 +134,22 @@ export const useProviderForm = ({
       });
       return updatedFields;
     });
+  };
+
+  const handleMultiConfigsChange = (configs: ConfigItem[]) => {
+    setMultiConfigs(configs);
+    if (configs.length === 1 && configs[0].name === 'default') {
+      // 单配置
+      form.setValue("config", JSON.stringify(configs[0].fields, null, 2));
+    } else {
+      // 多配置
+      const multiConfig = {
+        configs: Object.fromEntries(
+          configs.map(c => [c.name, { type: c.type, config: c.fields }])
+        )
+      };
+      form.setValue("config", JSON.stringify(multiConfig, null, 2));
+    }
   };
 
   const openEditDialog = (provider: Provider) => {
@@ -189,6 +222,10 @@ export const useProviderForm = ({
     }
   };
 
+  const toggleConfigMode = () => {
+    setStructuredConfigEnabled((prev) => !prev);
+  };
+
   return {
     form,
     open,
@@ -196,9 +233,12 @@ export const useProviderForm = ({
     editingProvider,
     structuredConfigEnabled,
     configFields,
+    multiConfigs,
     openEditDialog,
     openCreateDialog,
     handleConfigFieldChange,
+    handleMultiConfigsChange,
+    toggleConfigMode,
     submit,
   };
 };

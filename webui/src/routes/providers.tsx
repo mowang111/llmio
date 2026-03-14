@@ -63,9 +63,12 @@ export default function ProvidersPage() {
     editingProvider,
     structuredConfigEnabled,
     configFields,
+    multiConfigs,
     openEditDialog,
     openCreateDialog,
     handleConfigFieldChange,
+    handleMultiConfigsChange,
+    toggleConfigMode,
     submit,
   } = useProviderForm({
     providerTemplates,
@@ -357,7 +360,10 @@ export default function ProvidersPage() {
         providerTemplates={providerTemplates}
         structuredConfigEnabled={structuredConfigEnabled}
         configFields={configFields}
+        multiConfigs={multiConfigs}
         onConfigFieldChange={handleConfigFieldChange}
+        onMultiConfigsChange={handleMultiConfigsChange}
+        onToggleConfigMode={toggleConfigMode}
         onSubmit={submit}
       />
 

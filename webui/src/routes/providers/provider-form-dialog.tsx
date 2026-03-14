@@ -21,10 +21,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Label } from "@/components/ui/label";
 import type { Provider, ProviderTemplate } from "@/lib/api";
 import type { ConfigFieldMap } from "./provider-form-utils";
 import type { ProviderFormValues } from "./use-provider-form";
+import { MultiConfigForm } from "./multi-config-form";
+
+type ConfigItem = {
+  name: string;
+  type: string;
+  fields: Record<string, string>;
+};
 
 type ProviderFormDialogProps = {
   open: boolean;
@@ -34,7 +40,10 @@ type ProviderFormDialogProps = {
   providerTemplates: ProviderTemplate[];
   structuredConfigEnabled: boolean;
   configFields: ConfigFieldMap;
+  multiConfigs: ConfigItem[];
   onConfigFieldChange: (key: string, value: string) => void;
+  onMultiConfigsChange: (configs: ConfigItem[]) => void;
+  onToggleConfigMode?: () => void;
   onSubmit: (values: ProviderFormValues) => Promise<void>;
 };
 
@@ -45,14 +54,15 @@ export function ProviderFormDialog({
   editingProvider,
   providerTemplates,
   structuredConfigEnabled,
-  configFields,
-  onConfigFieldChange,
+  multiConfigs,
+  onMultiConfigsChange,
+  onToggleConfigMode,
   onSubmit,
 }: ProviderFormDialogProps) {
   const { t } = useTranslation(['providers', 'common']);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {editingProvider ? t('form.edit_title') : t('form.add_title')}
@@ -78,10 +88,11 @@ export function ProviderFormDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => {
+            {!structuredConfigEnabled && (
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => {
                 const currentValue = field.value ?? "";
                 const hasCurrentValue = providerTemplates.some(
                   (template) => template.type === currentValue
@@ -151,52 +162,48 @@ export function ProviderFormDialog({
                 );
               }}
             />
+            )}
 
             <FormField
               control={form.control}
               name="config"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('form.config_label')}</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>{t('form.config_label')}</FormLabel>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onToggleConfigMode?.()}
+                      className="h-6 text-xs"
+                    >
+                      {structuredConfigEnabled ? 'JSON' : '表单'}
+                    </Button>
+                  </div>
                   {structuredConfigEnabled ? (
-                    Object.keys(configFields).length === 0 ? (
-                      <p className="text-sm text-muted-foreground">
-                        {t('form.no_config')}
-                      </p>
-                    ) : (
-                      <div className="space-y-3">
-                        {Object.entries(configFields).map(([key, value]) => (
-                          <div key={key} className="space-y-1">
-                            <Label className="text-xs font-medium text-muted-foreground">
-                              {key}
-                            </Label>
-                            <Input
-                              value={value}
-                              onChange={(event) =>
-                                onConfigFieldChange(key, event.target.value)
-                              }
-                              placeholder={t('form.config_key_placeholder', { key })}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )
+                    <MultiConfigForm
+                      configs={multiConfigs}
+                      providerTemplates={providerTemplates}
+                      onChange={onMultiConfigsChange}
+                    />
                   ) : (
                     <>
                       <FormControl>
                         <Textarea
                           {...field}
-                          className="resize-none whitespace-pre overflow-x-auto font-mono text-xs"
+                          className="resize-none font-mono text-xs overflow-auto"
                           rows={8}
+                          style={{ whiteSpace: 'pre', overflowWrap: 'normal' }}
                         />
                       </FormControl>
                       <div className="text-xs text-muted-foreground space-y-1 mt-2">
                         <p className="font-medium">单配置格式：</p>
-                        <pre className="bg-muted p-2 rounded overflow-x-auto">
+                        <pre className="bg-muted p-2 rounded overflow-x-auto whitespace-pre">
 {`{"base_url": "https://api.openai.com/v1", "api_key": "sk-xxx"}`}
                         </pre>
                         <p className="font-medium mt-2">多配置格式（支持不同类型）：</p>
-                        <pre className="bg-muted p-2 rounded overflow-x-auto">
+                        <pre className="bg-muted p-2 rounded overflow-x-auto whitespace-pre">
 {`{
   "configs": {
     "default": {

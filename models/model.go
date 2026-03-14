@@ -28,15 +28,15 @@ type Model struct {
 	gorm.Model
 	Name            string
 	Remark          string
-	MaxRetry        int    // 重试次数限制
-	TimeOut         int    // 超时时间 单位秒
-	IOLog           *bool  // 是否记录IO
-	Strategy        string // 负载均衡策略 默认 lottery
-	Breaker         *bool  // 是否开启熔断
-	DisplayOrder    int    // 模型展示顺序，值越大越靠前
-	SubModels       []uint `gorm:"serializer:json"` // 子模型ID列表，支持嵌套
+	MaxRetry        int          // 重试次数限制
+	TimeOut         int          // 超时时间 单位秒
+	IOLog           *bool        // 是否记录IO
+	Strategy        string       // 负载均衡策略 默认 lottery
+	Breaker         *bool        // 是否开启熔断
+	DisplayOrder    int          // 模型展示顺序，值越大越靠前
+	SubModels       []uint       `gorm:"serializer:json"` // 子模型ID列表，支持嵌套
 	SubModelsWeight map[uint]int `gorm:"serializer:json"` // 子模型权重映射
-	IsGroup         *bool  // 是否为模型组（包含子模型）
+	IsGroup         *bool        // 是否为模型组（包含子模型）
 }
 
 type ModelWithProvider struct {
