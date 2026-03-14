@@ -54,7 +54,7 @@ export const useModelProviderForm = ({
       structured_output: true,
       image: true,
       with_header: false,
-      weight: 1,
+      weight: 50,
       customer_headers: [],
     };
   };

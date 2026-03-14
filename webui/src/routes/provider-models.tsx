@@ -26,7 +26,7 @@ export default function ProviderModelsPage() {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [selectedProviderModel, setSelectedProviderModel] = useState<string>("");
   const [selectedModelId, setSelectedModelId] = useState<number>(0);
-  const [weight, setWeight] = useState(1);
+  const [weight, setWeight] = useState(50);
   const [testResult, setTestResult] = useState<any>(null);
   const [testing, setTesting] = useState(false);
   const [modelStatus, setModelStatus] = useState<Record<string, boolean[]>>({});
@@ -123,7 +123,7 @@ export default function ProviderModelsPage() {
       toast.success("添加成功");
       setAddDialogOpen(false);
       setSelectedModelId(0);
-      setWeight(1);
+      setWeight(50);
       await fetchData();
     } catch (err) {
       toast.error(`添加失败: ${err}`);
