@@ -98,6 +98,7 @@ func BalanceChat(ctx context.Context, start time.Time, style string, before Befo
 			TraceID:       traceID,
 			ProviderModel: modelWithProvider.ProviderModel,
 			ProviderName:  provider.Name,
+			ConfigName:    modelWithProvider.ConfigName,
 			Status:        consts.StatusRunning,
 			Style:         style,
 			UserAgent:     reqMeta.UserAgent,

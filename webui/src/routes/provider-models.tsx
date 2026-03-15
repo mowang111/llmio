@@ -83,7 +83,7 @@ export default function ProviderModelsPage() {
             const myModel = myModelsList.find(m => m.ID === mp.ModelID);
             if (myModel) {
               try {
-                const status = await getModelProviderStatus(Number(providerId), myModel.Name, model.id);
+                const status = await getModelProviderStatus(Number(providerId), myModel.Name, model.id, selectedConfigName);
                 newStatus[model.id] = status;
               } catch (error) {
                 console.error(`Failed to load status for ${model.id}:`, error);
@@ -92,7 +92,7 @@ export default function ProviderModelsPage() {
           } else {
             // 即使没有关联模型，也尝试加载测试记录
             try {
-              const status = await getModelProviderStatus(Number(providerId), "test", model.id);
+              const status = await getModelProviderStatus(Number(providerId), "test", model.id, selectedConfigName);
               if (status.length > 0) {
                 newStatus[model.id] = status;
               }
@@ -157,7 +157,7 @@ export default function ProviderModelsPage() {
     setTesting(true);
     setTestResult(null);
     try {
-      const result = await testProviderModel(provider.ID, providerModel);
+      const result = await testProviderModel(provider.ID, providerModel, selectedConfigName);
       setTestResult(result);
       await fetchData();
     } catch (err) {

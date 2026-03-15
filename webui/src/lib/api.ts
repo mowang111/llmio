@@ -320,11 +320,12 @@ export async function getModelProviders(modelId: number): Promise<ModelWithProvi
   return apiRequest<ModelWithProvider[]>(`/model-providers?model_id=${modelId}`);
 }
 
-export async function getModelProviderStatus(providerId: number, modelName: string, providerModel: string): Promise<boolean[]> {
+export async function getModelProviderStatus(providerId: number, modelName: string, providerModel: string, configName?: string): Promise<boolean[]> {
   const params = new URLSearchParams({
     provider_id: providerId.toString(),
     model_name: modelName,
-    provider_model: providerModel
+    provider_model: providerModel,
+    config_name: configName || 'default'
   });
   return apiRequest<boolean[]>(`/model-providers/status?${params.toString()}`);
 }
@@ -337,9 +338,12 @@ export async function getSubModelStatus(modelName: string, subModelName: string)
   return apiRequest<boolean[]>(`/sub-models/status?${params.toString()}`);
 }
 
-export async function testProviderModel(providerId: number, model: string): Promise<any> {
+export async function testProviderModel(providerId: number, model: string, configName?: string): Promise<any> {
   const token = localStorage.getItem("authToken");
-  const params = new URLSearchParams({ model });
+  const params = new URLSearchParams({
+    model,
+    config_name: configName || 'default'
+  });
   const response = await fetch(`${API_BASE}/test/provider-model/${providerId}?${params.toString()}`, {
     headers: {
       'Authorization': `Bearer ${token}`,

@@ -154,6 +154,10 @@ func ProviderTestHandler(c *gin.Context) {
 func ProviderModelTestHandler(c *gin.Context) {
 	id := c.Param("id")
 	model := c.Query("model")
+	configName := c.Query("config_name")
+	if configName == "" {
+		configName = "default"
+	}
 	if id == "" || model == "" {
 		common.BadRequest(c, "Invalid parameters")
 		return
@@ -166,7 +170,7 @@ func ProviderModelTestHandler(c *gin.Context) {
 		return
 	}
 
-	providerInstance, err := providers.New(provider.Type, provider.Config, provider.Proxy)
+	providerInstance, err := providers.NewWithConfig(provider.Type, provider.Config, provider.Proxy, configName)
 	if err != nil {
 		common.BadRequest(c, "Failed to create provider: "+err.Error())
 		return
@@ -204,6 +208,7 @@ func ProviderModelTestHandler(c *gin.Context) {
 		Name:          "test",
 		ProviderModel: model,
 		ProviderName:  provider.Name,
+		ConfigName:    configName,
 		Style:         provider.Type,
 		ProxyTime:     time.Duration(proxyTime) * time.Millisecond,
 	}

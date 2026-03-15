@@ -576,6 +576,10 @@ func GetModelProviderStatus(c *gin.Context) {
 	providerIDStr := c.Query("provider_id")
 	modelName := c.Query("model_name")
 	providerModel := c.Query("provider_model")
+	configName := c.Query("config_name")
+	if configName == "" {
+		configName = "default"
+	}
 
 	if providerIDStr == "" || modelName == "" || providerModel == "" {
 		common.BadRequest(c, "provider_id, model_name and provider_model query parameters are required")
@@ -596,9 +600,17 @@ func GetModelProviderStatus(c *gin.Context) {
 	}
 
 	// 获取最近10次请求状态（包括测试记录）
-	logs, err := gorm.G[models.ChatLog](models.DB).
+	query := gorm.G[models.ChatLog](models.DB).
 		Where("provider_name = ?", provider.Name).
-		Where("provider_model = ?", providerModel).
+		Where("provider_model = ?", providerModel)
+
+	if configName == "default" {
+		query = query.Where("(config_name = ? OR config_name = '' OR config_name IS NULL)", configName)
+	} else {
+		query = query.Where("config_name = ?", configName)
+	}
+
+	logs, err := query.
 		Where("(name = ? OR name = ?)", modelName, "test").
 		Where("status != ?", consts.StatusRunning).
 		Limit(10).

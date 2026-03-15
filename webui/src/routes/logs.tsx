@@ -365,12 +365,32 @@ export default function LogsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {logs?.map((log) => (
+                    {logs?.map((log) => {
+                      const provider = providers.find(p => p.Name === log.ProviderName);
+                      const model = models.find(m => m.Name === log.Name);
+                      return (
                       <TableRow key={log.ID}>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {new Date(log.CreatedAt).toLocaleString()}
                         </TableCell>
-                        <TableCell className="font-medium">{log.Name}</TableCell>
+                        <TableCell className="font-medium">
+                          {model ? (
+                            <button
+                              onClick={() => {
+                                if (model.IsGroup) {
+                                  navigate({ pathname: '/model-group-submodels', search: `?groupId=${model.ID}` });
+                                } else {
+                                  navigate({ pathname: '/models', search: `?modelId=${model.ID}` });
+                                }
+                              }}
+                              className="text-primary hover:underline"
+                            >
+                              {log.Name}
+                            </button>
+                          ) : (
+                            log.Name
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs">{log.key_name || '-'}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center px-2 py-1 ${getStatusTextClass(log.Status)}`}>
@@ -382,9 +402,31 @@ export default function LogsPage() {
                           {log.Size ? formatBytes(log.Size) : '-'}
                         </TableCell>
                         <TableCell>{formatTime(log.ChunkTime + log.FirstChunkTime + log.ProxyTime)}</TableCell>
-                        <TableCell className="max-w-[120px] truncate text-xs" title={log.ProviderModel}>{log.ProviderModel}</TableCell>
+                        <TableCell className="max-w-[120px] truncate text-xs" title={log.ProviderModel}>
+                          {model ? (
+                            <button
+                              onClick={() => navigate({ pathname: '/models', search: `?modelId=${model.ID}` })}
+                              className="text-primary hover:underline"
+                            >
+                              {log.ProviderModel}
+                            </button>
+                          ) : (
+                            log.ProviderModel
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs">{log.Style}</TableCell>
-                        <TableCell className="text-xs">{log.ProviderName}</TableCell>
+                        <TableCell className="text-xs">
+                          {provider ? (
+                            <button
+                              onClick={() => navigate({ pathname: '/provider-models', search: `?providerId=${provider.ID}` })}
+                              className="text-primary hover:underline"
+                            >
+                              {log.ProviderName}
+                            </button>
+                          ) : (
+                            log.ProviderName
+                          )}
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDetailDialog(log)}>
@@ -402,16 +444,36 @@ export default function LogsPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </div>
               <div className="sm:hidden px-2 py-3 divide-y divide-border">
-                {logs?.map((log) => (
+                {logs?.map((log) => {
+                  const provider = providers.find(p => p.Name === log.ProviderName);
+                  const model = models.find(m => m.Name === log.Name);
+                  return (
                   <div key={log.ID} className="py-3 space-y-2 my-1 px-1">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-semibold text-sm truncate">{log.Name}</h3>
+                        <h3 className="font-semibold text-sm truncate">
+                          {model ? (
+                            <button
+                              onClick={() => {
+                                if (model.IsGroup) {
+                                  navigate({ pathname: '/model-group-submodels', search: `?groupId=${model.ID}` });
+                                } else {
+                                  navigate({ pathname: '/models', search: `?modelId=${model.ID}` });
+                                }
+                              }}
+                              className="text-primary hover:underline"
+                            >
+                              {log.Name}
+                            </button>
+                          ) : (
+                            log.Name
+                          )}
+                        </h3>
                         <p className="text-[11px] text-muted-foreground">{new Date(log.CreatedAt).toLocaleString()}</p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -446,7 +508,18 @@ export default function LogsPage() {
                       </div>
                       <div className="space-y-1">
                         <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('mobile.provider')}</p>
-                        <p className="truncate">{log.ProviderName}</p>
+                        <p className="truncate">
+                          {provider ? (
+                            <button
+                              onClick={() => navigate({ pathname: '/provider-models', search: `?providerId=${provider.ID}` })}
+                              className="text-primary hover:underline"
+                            >
+                              {log.ProviderName}
+                            </button>
+                          ) : (
+                            log.ProviderName
+                          )}
+                        </p>
                       </div>
                       <div className="space-y-1">
                         <p className="text-muted-foreground text-[10px] uppercase tracking-wide">{t('mobile.type')}</p>
@@ -454,7 +527,7 @@ export default function LogsPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </div>
           </div>

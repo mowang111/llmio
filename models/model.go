@@ -60,7 +60,8 @@ type ChatLog struct {
 	TraceID       string `gorm:"index"`
 	ProviderModel string `gorm:"index"`
 	ProviderName  string `gorm:"index"`
-	Status        string `gorm:"index"` // error or success
+	ConfigName    string `gorm:"index;default:default"` // 配置名称
+	Status        string `gorm:"index"`                 // error or success
 	Style         string // 类型
 	UserAgent     string `gorm:"index"` // 用户代理
 	RemoteIP      string // 访问ip
