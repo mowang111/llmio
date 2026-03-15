@@ -465,8 +465,9 @@ export interface ProviderModel {
   owned_by: string;
 }
 
-export async function getProviderModels(providerId: number): Promise<ProviderModel[]> {
-  return apiRequest<ProviderModel[]>(`/providers/models/${providerId}`);
+export async function getProviderModels(providerId: number, configName?: string): Promise<ProviderModel[]> {
+  const params = configName ? `?config_name=${configName}` : '';
+  return apiRequest<ProviderModel[]>(`/providers/models/${providerId}${params}`);
 }
 
 export async function getProviderConfigNames(providerId: number): Promise<string[]> {

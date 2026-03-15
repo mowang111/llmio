@@ -57,7 +57,7 @@ export default function ProviderModelsPage() {
       const names = await getProviderConfigNames(Number(providerId));
       setConfigNames(names);
 
-      const models = await getProviderModels(Number(providerId));
+      const models = await getProviderModels(Number(providerId), selectedConfigName);
       setProviderModels(models);
 
       const myModelsList = await getModelOptions();

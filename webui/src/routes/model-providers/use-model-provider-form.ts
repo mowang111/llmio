@@ -15,6 +15,7 @@ export const modelProviderFormSchema = z.object({
   model_id: z.number().positive({ message: "模型ID必须大于0" }),
   provider_name: z.string().min(1, { message: "提供商模型名称不能为空" }),
   provider_id: z.number().positive({ message: "提供商ID必须大于0" }),
+  config_name: z.string().default("default"),
   tool_call: z.boolean(),
   structured_output: z.boolean(),
   image: z.boolean(),
@@ -28,8 +29,8 @@ export type ModelProviderFormValues = z.input<typeof modelProviderFormSchema>;
 type UseModelProviderFormParams = {
   selectedModelId: number | null;
   models: Model[];
-  providerModelsMap: Record<number, ProviderModel[]>;
-  loadProviderModels: (providerId: number, force?: boolean) => Promise<void>;
+  providerModelsMap: Record<string, ProviderModel[]>;
+  loadProviderModels: (providerId: number, configName: string, force?: boolean) => Promise<void>;
   onReload: (modelId: number) => Promise<void> | void;
 };
 
@@ -50,6 +51,7 @@ export const useModelProviderForm = ({
       model_id: fallbackModelId,
       provider_name: "",
       provider_id: 0,
+      config_name: "default",
       tool_call: true,
       structured_output: true,
       image: true,
@@ -70,13 +72,14 @@ export const useModelProviderForm = ({
   });
 
   const selectedProviderId = form.watch("provider_id");
+  const selectedConfigName = form.watch("config_name");
 
   useEffect(() => {
-    if (selectedProviderId && selectedProviderId > 0) {
-      loadProviderModels(selectedProviderId);
+    if (selectedProviderId && selectedProviderId > 0 && selectedConfigName) {
+      loadProviderModels(selectedProviderId, selectedConfigName);
     }
     setShowProviderModels(false);
-  }, [selectedProviderId, loadProviderModels]);
+  }, [selectedProviderId, selectedConfigName, loadProviderModels]);
 
   const buildPayload = (values: ModelProviderFormValues) => {
     const headers: Record<string, string> = {};
@@ -91,6 +94,7 @@ export const useModelProviderForm = ({
       model_id: values.model_id,
       provider_name: values.provider_name,
       provider_id: values.provider_id,
+      config_name: values.config_name,
       tool_call: values.tool_call,
       structured_output: values.structured_output,
       image: values.image,
@@ -110,6 +114,7 @@ export const useModelProviderForm = ({
       model_id: association.ModelID,
       provider_name: association.ProviderModel,
       provider_id: association.ProviderID,
+      config_name: association.ConfigName || "default",
       tool_call: association.ToolCall,
       structured_output: association.StructuredOutput,
       image: association.Image,
@@ -147,8 +152,9 @@ export const useModelProviderForm = ({
     }
   };
 
-  const sortProviderModels = (providerId: number, query: string): ProviderModel[] => {
-    const modelsForProvider = providerModelsMap[providerId] || [];
+  const sortProviderModels = (providerId: number, configName: string, query: string): ProviderModel[] => {
+    const key = `${providerId}-${configName}`;
+    const modelsForProvider = providerModelsMap[key] || [];
     if (!query) return modelsForProvider;
 
     const normalized = query.toLowerCase();
@@ -176,6 +182,7 @@ export const useModelProviderForm = ({
     appendHeader,
     removeHeader,
     selectedProviderId,
+    selectedConfigName,
     openEditDialog,
     openCreateDialog,
     submit,

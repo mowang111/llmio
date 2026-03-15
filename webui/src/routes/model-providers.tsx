@@ -58,7 +58,8 @@ import {
   updateModel,
   getProviders,
   getProviderModels,
-  updateModelOrder
+  updateModelOrder,
+  getProviderConfigNames
 } from "@/lib/api";
 import type { ModelWithProvider, Model, Provider, ProviderModel } from "@/lib/api";
 import { toast } from "sonner";
@@ -104,8 +105,9 @@ export default function ModelProvidersPage() {
   const [modelProviders, setModelProviders] = useState<ModelWithProvider[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [providerModelsMap, setProviderModelsMap] = useState<Record<number, ProviderModel[]>>({});
-  const [providerModelsLoading, setProviderModelsLoading] = useState<Record<number, boolean>>({});
+  const [providerModelsMap, setProviderModelsMap] = useState<Record<string, ProviderModel[]>>({});
+  const [providerModelsLoading, setProviderModelsLoading] = useState<Record<string, boolean>>({});
+  const [providerConfigNames, setProviderConfigNames] = useState<string[]>(["default"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const [providerStatus, setProviderStatus] = useState<Record<number, boolean[]>>({});
   const [loading, setLoading] = useState(true);
@@ -149,21 +151,22 @@ export default function ModelProvidersPage() {
     },
   });
 
-  const loadProviderModels = useCallback(async (providerId: number, force = false) => {
+  const loadProviderModels = useCallback(async (providerId: number, configName: string, force = false) => {
     if (!providerId) return;
-    if (!force && providerModelsMap[providerId]) return;
+    const key = `${providerId}-${configName}`;
+    if (!force && providerModelsMap[key]) return;
 
-    setProviderModelsLoading((prev) => ({ ...prev, [providerId]: true }));
+    setProviderModelsLoading((prev) => ({ ...prev, [key]: true }));
     try {
-      const data = await getProviderModels(providerId);
-      setProviderModelsMap((prev) => ({ ...prev, [providerId]: data }));
+      const data = await getProviderModels(providerId, configName);
+      setProviderModelsMap((prev) => ({ ...prev, [key]: data }));
     } catch (err) {
       toast.warning(`获取提供商: ${providers.find((e) => e.ID === providerId)?.Name} 模型列表失败, 请手动填写提供商模型\n${err}`);
-      setProviderModelsMap((prev) => ({ ...prev, [providerId]: [] }));
+      setProviderModelsMap((prev) => ({ ...prev, [key]: [] }));
     } finally {
       setProviderModelsLoading((prev) => {
         const next = { ...prev };
-        delete next[providerId];
+        delete next[key];
         return next;
       });
     }
@@ -298,6 +301,7 @@ export default function ModelProvidersPage() {
     appendHeader,
     removeHeader,
     selectedProviderId,
+    selectedConfigName,
     openEditDialog,
     openCreateDialog,
     submit,
@@ -315,6 +319,21 @@ export default function ModelProvidersPage() {
       await refreshModelAssociationCount(modelId);
     },
   });
+
+  useEffect(() => {
+    if (selectedProviderId && selectedProviderId > 0) {
+      getProviderConfigNames(selectedProviderId).then(names => {
+        const configNames = names.length > 0 ? names : ["default"];
+        setProviderConfigNames(configNames);
+        if (!selectedConfigName || !configNames.includes(selectedConfigName)) {
+          form.setValue("config_name", configNames[0]);
+        }
+      }).catch(() => {
+        setProviderConfigNames(["default"]);
+        form.setValue("config_name", "default");
+      });
+    }
+  }, [selectedProviderId]);
 
   useEffect(() => {
     Promise.all([fetchModels(), fetchProviders()]).finally(() => {
@@ -1628,6 +1647,8 @@ export default function ModelProvidersPage() {
         showProviderModels={showProviderModels}
         setShowProviderModels={setShowProviderModels}
         selectedProviderId={selectedProviderId}
+        selectedConfigName={selectedConfigName || "default"}
+        providerConfigNames={providerConfigNames}
         providerModelsMap={providerModelsMap}
         providerModelsLoading={providerModelsLoading}
         sortProviderModels={sortProviderModels}

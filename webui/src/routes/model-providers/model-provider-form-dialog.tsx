@@ -32,10 +32,12 @@ type ModelProviderFormDialogProps = {
   showProviderModels: boolean;
   setShowProviderModels: (show: boolean) => void;
   selectedProviderId: number;
-  providerModelsMap: Record<number, ProviderModel[]>;
-  providerModelsLoading: Record<number, boolean>;
-  sortProviderModels: (providerId: number, query: string) => ProviderModel[];
-  loadProviderModels: (providerId: number, force?: boolean) => Promise<void>;
+  selectedConfigName: string;
+  providerConfigNames: string[];
+  providerModelsMap: Record<string, ProviderModel[]>;
+  providerModelsLoading: Record<string, boolean>;
+  sortProviderModels: (providerId: number, configName: string, query: string) => ProviderModel[];
+  loadProviderModels: (providerId: number, configName: string, force?: boolean) => Promise<void>;
 };
 
 export function ModelProviderFormDialog({
@@ -52,6 +54,8 @@ export function ModelProviderFormDialog({
   showProviderModels,
   setShowProviderModels,
   selectedProviderId,
+  selectedConfigName,
+  providerConfigNames,
   providerModelsMap,
   providerModelsLoading,
   sortProviderModels,
@@ -112,6 +116,7 @@ export function ModelProviderFormDialog({
                           const parsed = parseInt(value);
                           field.onChange(parsed);
                           form.setValue("provider_name", "");
+                          form.setValue("config_name", "default");
                         }}
                       >
                         <FormControl>
@@ -135,6 +140,34 @@ export function ModelProviderFormDialog({
 
               <FormField
                 control={form.control}
+                name="config_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('association_form.config_name_label', 'Config Name')}</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="form-select w-full">
+                          <SelectValue placeholder={t('association_form.config_name_placeholder', 'Select config')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {providerConfigNames.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="provider_name"
                 render={({ field }) => (
                   <FormItem className="space-y-2">
@@ -151,9 +184,9 @@ export function ModelProviderFormDialog({
                             setShowProviderModels(true);
                           }}
                         />
-                        {showProviderModels && (providerModelsMap[selectedProviderId] || []).length > 0 && (
+                        {showProviderModels && (providerModelsMap[`${selectedProviderId}-${selectedConfigName}`] || []).length > 0 && (
                           <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover text-popover-foreground shadow-sm max-h-52 overflow-y-auto">
-                            {sortProviderModels(selectedProviderId, field.value || "").map((model) => (
+                            {sortProviderModels(selectedProviderId, selectedConfigName, field.value || "").map((model) => (
                               <button
                                 key={model.id}
                                 type="button"
@@ -178,10 +211,10 @@ export function ModelProviderFormDialog({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => loadProviderModels(selectedProviderId, true)}
-                          disabled={!!providerModelsLoading[selectedProviderId]}
+                          onClick={() => loadProviderModels(selectedProviderId, selectedConfigName, true)}
+                          disabled={!!providerModelsLoading[`${selectedProviderId}-${selectedConfigName}`]}
                         >
-                          {providerModelsLoading[selectedProviderId] ? (
+                          {providerModelsLoading[`${selectedProviderId}-${selectedConfigName}`] ? (
                             <Spinner className="size-4" />
                           ) : (
                             <RefreshCw className="size-4" />
